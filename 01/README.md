@@ -1,5 +1,5 @@
 #README for my_pthread_t (WIP)
-Shrey Dasai, Jessica Guo, Douglass Judice
+Shrey Dasai, Jessica Guo, Douglas Judice
 
 pthread Implementation 
 
