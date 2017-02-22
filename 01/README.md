@@ -1,3 +1,2 @@
 # Hi.
-#
-# We can make the readme pretty in the end, but I think we should put down our train of thought so that we don't forget anything
+I think we should keep track of our train of thought and ideas for now and then at the end we can summarize it in the readme
