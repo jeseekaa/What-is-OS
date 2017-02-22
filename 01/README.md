@@ -1,4 +1,4 @@
-#README for my_pthread_t (WIP readme)
+#README for my_pthread_t (WIP)
 Shrey Dasai, Jessica Guo, Douglass Judice
 
 pthread Implementation 
