@@ -401,7 +401,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 /********************************** testing below *********************************/
 
-my_pthread_mutex_t lock;
+/*my_pthread_mutex_t lock;
 int counter;
 
 void* doSomeThing(void *arg)
@@ -468,4 +468,85 @@ int main(void)
     }
 
     return 0;
+}*/
+
+void * CountEven();
+void * CountOdd();
+int count = 0;
+#define COUNT_DONE 200
+
+void * CountEven(){
+    for(;;){
+        my_pthread_mutex_lock(mutex0);
+        if(count%2 ==0){
+            printf("%d is even \n", count);
+        }
+        count++;
+        if(count>= COUNT_DONE)
+        {
+            my_pthread_mutex_unlock(mutex0);
+            return NULL;
+        }
+
+        my_pthread_mutex_unlock(mutex0);
+    }
+}
+
+void * CountOdd(){
+    for(;;){
+        my_pthread_mutex_lock(mutex0);
+        if(count%2 != 0){
+            printf("%d is odd\n", count);
+        }
+        count++;
+        if(count>= COUNT_DONE)
+        {
+            my_pthread_mutex_unlock(mutex0);
+            return NULL;
+        }
+
+        my_pthread_mutex_unlock(mutex0);
+    }
+}
+
+
+int main(){
+
+    mutex0 = malloc(sizeof(my_pthread_mutex_t));
+    my_pthread_mutex_init(mutex0,NULL);
+    init_schedule();
+
+
+
+    printf("creadting thread list\n");
+    thread_list = malloc(NTHREADS*sizeof(my_pthread_t));
+    printf("threadlist created\n");
+
+    int i=0;
+
+    my_pthread_create(&thread_list[1], NULL, &CountOdd,NULL);
+
+    while(i != NTHREADS){
+
+        printf("begin thread creation\n");
+
+        if(i%2==0){
+            my_pthread_create(&thread_list[i], NULL, &CountEven, NULL);
+        }else{
+            my_pthread_create(&thread_list[i], NULL, &CountOdd, NULL);
+        }
+
+        i++;
+    }
+
+   /* my_pthread_t thread1, thread2;
+    my_pthread_create(&thread1, NULL, &CountEven, NULL);
+    my_pthread_create(&thread2, NULL, &CountOdd, NULL);*/
+
+
+   // my_pthread_join(&thread1, NULL);
+    //my_pthread_join(&thread2, NULL);
+    exit(0);
+
+
 }
