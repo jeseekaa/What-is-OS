@@ -1,9 +1,8 @@
 /*
 Shrey Desai
 Jessica Guo
-Douglas Judice
-
-Assignment 01 due 02/26/2017 @ 11:55PM
+Douglas Justice
+Assignment 01 due 02/26/2017 11:55PM
 */
 
 #include <stdlib.h>
@@ -18,11 +17,66 @@ Assignment 01 due 02/26/2017 @ 11:55PM
 
 
 /*Generic queue functions*/
-void create_queue(queue * first);
-void enqueue(queue * first, my_pthread_t * thread_node);
-my_pthread_t * dequeue(queue * first);
-my_pthread_t * peek(queue * first);
-char isEmpty(queue *first);
+void create_queue(queue * q){
+
+	q->head = NULL;
+	q->tail = NULL;
+	q->size =0
+}
+
+void enqueue(queue * q, my_pthread_t * thread_node){
+
+	if(q->size ==0){ //empty queue
+		q->head = thread_node;
+		q->tail = thread_node;
+		q->size++;
+	}
+	else{ // FIFO, add to tail
+		q->tail->next_thread = thread_node;
+		q->tail = thread_node;
+		q->size++;
+
+	}
+}
+
+my_pthread_t * dequeue(queue * q){
+	
+	//check empty
+	if(q->size ==0){
+		printf("Empty Queue\n");
+		return NULL;
+	}
+
+	//FIFO, dequeue from head, create a temp to return the value
+	my_pthread_t * temp;
+	if(q->size ==1){
+		temp = q->head;
+		q->head = NULL;
+		q->tail = NULL;
+	}
+	else{
+		temp = q->head;
+		q->head = q->head->next_thread;
+	}
+
+	q->size--;
+
+	return temp;
+
+}
+
+my_pthread_t * peek(queue * q){
+	return q->head;
+}
+
+int isEmpty(queue *q){
+	//0 true, 1 false
+	if(q->size ==0){
+		return 0;
+	}else{
+		return 1;
+	}
+}
 
 
 /*pthread library*/ 
@@ -34,7 +88,7 @@ void my_pthread_yield();
 void my_pthread_exit(void *value_ptr);
 /*Explicit call to the my_pthread_t library to end the pthread that called it. If the value_ptr isn't NULL, any return value from the thread will be saved.*/
 
-int my_pthread_join(my_thread_t thread, void **value_ptr);
+int my_pthread_join(my_pthread_t thread, void **value_ptr);
 /*Call to the my_pthread_t library ensuring that the calling thread will not execute until the one it references exits. If value_ptr is not null, the return value of the exiting thread will be passed back.*/
 
 /* Scheduling functions*/
@@ -116,5 +170,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 //probs only for testing
 int main(){
-  return 0;
+
 }
+
+
