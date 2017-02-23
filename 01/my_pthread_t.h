@@ -6,7 +6,8 @@ Douglas Justice
 Assignment 01 due 02/26/2017 11:55PM
 */
 
-#idndef MY_PTHREAD_T_H
+
+#ifndef MY_PTHREAD_T_H
 #define MY_PTHREAD_T_H
 
 #define NTHREADS 10 
@@ -57,11 +58,11 @@ typedef struct{
 	int size;
 } queue;
 
-void create_queue(queue * first);
-void enqueue(queue * first, my_pthread_t * thread_node);
-my_pthread_t * dequeue(queue * first);
-my_pthread_t * peek(queue * first);
-char isEmpty(queue *first);
+void create_queue(queue * q);
+void enqueue(queue * q, my_pthread_t * thread_node);
+my_pthread_t * dequeue(queue * q);
+my_pthread_t * peek(queue * q);
+int isEmpty(queue *q);
 
 
 /*pthread library*/ 
