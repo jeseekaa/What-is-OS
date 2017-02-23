@@ -22,6 +22,8 @@ typedef enum my_pthread_state {
 	NEW, READY, RUNNING, WAITING, TERMINATED, YIELD
 } my_pthread_state;
 
+#include <ucontext.h>
+
 /*pthread struct*/
 typedef struct my_pthread_t {
 
@@ -42,15 +44,6 @@ typedef struct my_pthread_t {
 } my_pthread_t;
 
 
-/*mutex struct*/
-typedef struct my_pthread_mutex_t{
-	volatile int flag; 
-	volatile int block; //volatile?
-	my_pthread_t owner_thread;
-	queue * wait;
-
-} my_pthread_mutex_t;
-
 /*queue struct and basic functions: create, enqueue, dequeue, peek, isEmpty*/
 typedef struct{
 	my_pthread_t * head;
@@ -65,6 +58,18 @@ my_pthread_t * peek(queue * q);
 int isEmpty(queue *q);
 
 
+
+
+/*mutex struct*/
+typedef struct my_pthread_mutex_t{
+	volatile int flag; 
+	volatile int block; //volatile?
+	my_pthread_t owner_thread;
+	queue * wait;
+
+} my_pthread_mutex_t;
+
+
 /*pthread library*/ 
 
 int my_pthread_create( my_pthread_t * thread, const pthread_attr_t * attr, void *(*function)(void*), void * arg);
@@ -74,7 +79,7 @@ void my_pthread_yield();
 void my_pthread_exit(void *value_ptr);
 /*Explicit call to the my_pthread_t library to end the pthread that called it. If the value_ptr isn't NULL, any return value from the thread will be saved.*/
 
-int my_pthread_join(my_thread_t thread, void **value_ptr);
+int my_pthread_join(my_pthread_t * thread, void **value_ptr);
 /*Call to the my_pthread_t library ensuring that the calling thread will not execute until the one it references exits. If value_ptr is not null, the return value of the exiting thread will be passed back.*/
 
 /* Scheduler struct and Scheduling functions*/
@@ -88,11 +93,11 @@ typedef struct schedule{
 } scheduler;
 
 void run_mypthread();
-void adjust_age();
 void init_schedule();
-void add_mypthread_schedule();
+void add_mypthread_sched();
 my_pthread_t * sched_chooseThread();
 void schedule_handler();
+
 
 /*mutex functions*/
 
@@ -108,7 +113,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
 
 
 /*static variables*/
-static my_pthread_mutext_t * mutex0;
+static my_pthread_mutex_t * mutex0;
 static my_pthread_t * thread_list;
 static scheduler * sched;
 
@@ -116,7 +121,7 @@ static long int thread_id =0;
 static long int check_flag =0;
 
 static int sharedVar0 =0;
-static int shared Var1 =0;
+static int sharedVar1 =0;
 
 static int start =0;
 static int end =0;
