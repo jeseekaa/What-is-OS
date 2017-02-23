@@ -168,9 +168,6 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 
 
-//probs only for testing
-int main(){
 
-}
 
 
