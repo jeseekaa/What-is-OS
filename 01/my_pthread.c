@@ -471,12 +471,6 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
             mutex->flag =1;
          }
 
-       /* sched ->thread_curr->thread_state = WAITING; //set state of thread to be WAITING on mutex
-
-        enqueue(mutex->wait, sched->thread_curr);
-
-        schedule_handler();*/
-
     printf("mutex flag: %d\n", mutex->flag);
     printf("pthread locked\n");
 
