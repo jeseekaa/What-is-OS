@@ -45,7 +45,7 @@ my_pthread_t* createThreadNode(my_pthread_t *node)
 void enqueue(my_pthread_t * temp, int num){
     
     // num 0=TOP, 1=BOTTOM, 2=WAIT
-    //printf("in enqueue: About to enqueue thread with id -> %d, into queue %d\n", temp->id, num); 
+    printf("in enqueue: About to enqueue thread with id -> %d, into queue %d\n", temp->id, num); 
     // increment num nodes within Queue
     int i = pthreadQueue[num].numNodes;
     temp->next = NULL;
@@ -376,3 +376,344 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
  What this does is if we fully run through the running queue then only will we go to the waiting queue
  and look for things that are "RUNNABLE"
  */
+
+
+/*mutex and helper functions added
+
+int mutex functions return 0 upon success*/
+
+/*Generic queue functions*/
+void gen_create_queue(priorityQueue * q){
+
+    q->front = NULL;
+    q->rear = NULL;
+    q->numNodes =0;
+}
+
+void gen_enqueue(priorityQueue * q, my_pthread_t * thread_node){
+
+    if(q->numNodes ==0){ //empty queue
+        q->front = thread_node;
+        q->rear = thread_node;
+        q->numNodes++;
+    }
+    else{ // FIFO, add to tail
+        q->rear->next = thread_node;
+        q->rear = thread_node;
+        q->numNodes++;
+
+    }
+}
+
+my_pthread_t * gen_dequeue(priorityQueue * q){
+    
+    //check empty
+    if(q->numNodes ==0){
+        printf("Empty Queue\n");
+        return NULL;
+    }
+
+    //FIFO, dequeue from head, create a temp to return the value
+    my_pthread_t * temp;
+    if(q->numNodes ==1){
+        temp = q->front;
+        q->front = NULL;
+        q->rear = NULL;
+    }
+    else{
+        temp = q->front;
+        q->front = q->front->next;
+    }
+
+    q->numNodes--;
+
+    return temp;
+
+}
+
+/*mutex functions*/
+int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr){
+/*Initializes a my_pthread_mutex_t created by the calling thread. Attributes are ignored.*/
+    int init = 1;
+    printf("start initializing mutex\n");
+    //mutex = malloc(sizeof(my_pthread_mutex_t));
+
+    if(mutex == NULL){
+        return EINVAL;
+    }
+
+    mutex->flag = 0;
+    mutex->block = 0;
+    mutex->wait = malloc(sizeof(priorityQueue)); //make a waiting queue for mutex
+
+    initQueue(mutex->wait);
+
+    printf("mutex was succuesfully initiated\n");
+
+    return init=0;
+}
+
+int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
+/*Locks a given mutex, other threads attempting to access this mutex will not run until it is unlocked.*/
+   
+    int locking = 1;
+    printf("pthread is being locked\n");
+
+    while(__sync_lock_test_and_set(&(mutex->flag),0)==1){
+       printf("inside synlocktestandset loop\n");
+       currThread->activeFlag = WAITING; // set the state of the current thread to be WAITITNG
+       gen_enqueue(mutex->wait, currThread); //this thread should be waiting in the mutex queue
+   }
+
+     printf(" number in mutex queue: %d\n", mutex->wait->numNodes);
+
+        if (mutex->flag ==0){
+            mutex->flag =1;
+         }
+
+       /* sched ->thread_curr->thread_state = WAITING; //set state of thread to be WAITING on mutex
+
+        enqueue(mutex->wait, sched->thread_curr);
+
+        schedule_handler();*/
+
+    printf("mutex flag: %d\n", mutex->flag);
+    printf("pthread locked\n");
+
+    return locking=0;
+}
+
+int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
+/*Unlocks a given mutex.*/
+    int unlock =1;
+    printf("pthread is being unlocked\n");
+
+   my_pthread_t * target_thread;
+
+   printf("%d\n", mutex->wait->numNodes);
+
+    if(mutex->wait->front != NULL){
+        printf("inside unlcok's if state,ent\n");
+        target_thread = gen_dequeue(mutex->wait);
+        scheduler();
+        printf("mutex is available\n");
+        
+    }
+
+    mutex->flag = 0;
+
+    printf("pthread unlocked\n");
+
+    return unlock = 0;
+
+}
+
+
+int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
+/*Destroys a given mutex. Mutex should be unlocked before doing so.*/
+    int destroy =1;
+    printf("pthread is being destoryed\n");
+
+    if(mutex ==NULL){
+        return EINVAL;
+    }
+
+    if(mutex->flag != 0){
+        return EBUSY;
+    }
+    //unlock the mutex
+    mutex->flag =0;
+
+    //free(mutex);
+
+    printf("mutex destroyed\n");
+
+    return destroy=0;
+}
+
+
+
+/***********************************************************************************************************
+  *
+  *                     TESTING AREA
+  *
+  **********************************************************************************************************/
+
+/***********************************      PTHREAD and MUTEX TEST 0        *******************************************/
+/*my_pthread_mutex_t * mutex;
+
+ void *myfunc(void *myvar){
+
+    printf("in myfunc\n");
+
+    char *msg;
+    msg =(char*)myvar;
+
+    printf("checkpoint in myfunc\n");
+
+    int i;
+    for(i=0; i<10; i++){
+        my_pthread_mutex_lock(mutex);
+        printf("checkpoint: myfunc's for loops\n");
+        printf("loop %d\n", i);
+        printf("%s %d \n", msg, i);
+        sleep(1);
+        my_pthread_mutex_unlock(mutex);
+    }
+
+    return NULL;
+ }
+
+int main(){
+
+    mutex = malloc(sizeof(my_pthread_mutex_t));
+    my_pthread_mutex_init(mutex, NULL);
+
+    my_pthread_t thread1, thread2;
+
+    printf("pthread structs created\n");
+
+    char * msg1 = "First thread";
+    char * msg2 = "Second thread";
+    char * msg3 = "Third thread";
+
+    int ret1, ret2, ret3;
+
+    ret1 = my_pthread_create(&thread1, NULL, myfunc, (void*)msg1);
+    ret2 = my_pthread_create(&thread2, NULL, myfunc, (void*)msg2);
+    ret3 = my_pthread_create(&thread2, NULL, myfunc, (void*)msg3);
+
+    printf("back in main after pthread creation\n");
+
+    //join threads is not done yet 
+    my_pthread_join(thread1, NULL);
+    my_pthread_join(thread2, NULL);
+
+    printf("pthreads have joined\n");
+
+    printf("first thread ret = %d\n", ret1);
+    printf("second thread ret = %d\n", ret2);
+    my_pthread_mutex_destroy(mutex);
+
+    return 0;
+}*/
+
+
+/************************ THREADS AND MUTEX TEST 0 *********************************************************/
+/*my_pthread_mutex_t * mutex;
+int g_ant =0;
+
+void *writeloop() {
+    while (g_ant < 10) {
+       // my_pthread_mutex_lock(mutex);
+        if (g_ant >= 10) {
+            //my_pthread_mutex_unlock(mutex);
+            break;
+        }
+
+        g_ant++;
+
+        printf("%d\n", g_ant);
+      // my_pthread_mutex_unlock(mutex);
+    }
+}
+
+int main()
+{
+    my_pthread_t tid1, tid2, tid3;
+
+    mutex = malloc(sizeof(my_pthread_mutex_t));
+
+    my_pthread_mutex_init(mutex, NULL);
+
+    int ret1, ret2, ret3;
+
+    ret1 = my_pthread_create(&tid1, NULL, &writeloop, NULL);
+    ret2 = my_pthread_create(&tid2, NULL, &writeloop, NULL);
+    ret3 = my_pthread_create(&tid3, NULL, &writeloop, NULL);
+
+    my_pthread_join(tid1, NULL);
+    my_pthread_join(tid2, NULL);
+    my_pthread_join(tid3, NULL);
+    my_pthread_mutex_destroy(mutex);
+
+    return 0;
+}*/
+
+/******             THEADS AND MUTEX TEST 1             ****************************************************/
+
+/*void * CountEven();
+void * CountOdd();
+my_pthread_mutex_t *count_mutex;
+static int count = 0;
+#define COUNT_DONE 10
+
+void * CountEven(){
+    for(;;){
+        my_pthread_mutex_lock(count_mutex);
+        if(count%2 ==0){
+            printf("%d is even \n", count);
+        }
+        count++;
+        if(count>= COUNT_DONE)
+        {
+            my_pthread_mutex_unlock(count_mutex);
+            return NULL;
+        }
+
+       my_pthread_mutex_unlock(count_mutex);
+    }
+}
+
+void * CountOdd(){
+    printf("hi");
+    for(;;){
+
+        my_pthread_mutex_lock(count_mutex);
+        if(count%2 != 0){
+            printf("%d is odd\n", count);
+        }
+        count++;
+        if(count>= COUNT_DONE)
+        {
+            my_pthread_mutex_unlock(count_mutex);
+            return NULL;
+        }
+
+        my_pthread_mutex_unlock(count_mutex);
+    }
+}
+
+
+int main(){
+
+    count_mutex = malloc(sizeof(my_pthread_mutex_t));
+    printf("initializing mutex\n");
+    my_pthread_mutex_init(count_mutex,NULL);
+
+    printf("MAIN:initializing thread structs\n");
+
+    my_pthread_t thread1, thread2;
+
+    int ret1, ret2, ret3;
+
+    printf("creating pthreads\n");
+
+   // ret3 =my_pthread_mutex_destroy(count_mutex);
+
+    ret1 = my_pthread_create(&thread1, NULL, &CountEven, NULL);
+   // ret2 = my_pthread_create(&thread2, NULL, &CountOdd, NULL);
+
+    printf("after pthread_create(), joining pthreads...\n");
+
+    //my_pthread_join(thread1, NULL);
+    //my_pthread_join(thread2, NULL);
+
+    printf("pthreads joined\n");
+
+    free(count_mutex);
+
+    exit(0);
+
+
+}*/
