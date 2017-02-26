@@ -37,8 +37,9 @@ int main(int argc, char ** argv)
     int *ptr[3];
     my_pthread_t *thread_list = (my_pthread_t *)malloc(NTHREADS * sizeof(my_pthread_t));
     
-    //lock = malloc(sizeof(my_pthread_mutex_t)); 
-    //printf("Initializing the Mutex\n");
+    lock = malloc(sizeof(my_pthread_mutex_t)); 
+    printf("Initializing the Mutex\n");
+    my_pthread_mutex_t * mutex0 = malloc(sizeof(my_pthread_mutex_t));
     my_pthread_mutex_init(lock,NULL);
     
     
