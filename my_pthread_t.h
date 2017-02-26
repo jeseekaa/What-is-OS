@@ -45,7 +45,7 @@ long int timeStamp();
 
 void scheduler();
 
-void alarm(int signum);
+//void alarm(int signum);
 
 int my_pthread_create(my_pthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg);
 

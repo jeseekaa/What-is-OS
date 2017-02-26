@@ -133,13 +133,13 @@ long int timeStamp(){
 int checkIfEmpty(pthread_retval *head){
 	pthread_retval *rt = head;
 	while(rt!=NULL){
-		printf("IN CHECKIFEMPTY: id is %d\n", rt->id);
+		//printf("IN CHECKIFEMPTY: id is %d\n", rt->id);
 		if(rt->flag == 1){
 			return 0;
 		}
 		rt=rt->next;
 	}
-	printf("IN CHECKIFEMPTY: about to return 1\n"); 
+	//printf("IN CHECKIFEMPTY: about to return 1\n"); 
 	return 1;
 }
 
@@ -164,7 +164,8 @@ void valuePlacer(){
 void checker(){
 	pthread_retval *retlist = currThread->returnList;
 	while(retlist != NULL){
-		printf("(%d)retlist address = %p and value = %d\n", retlist->id, &retlist->waitingForValuePtr, *(retlist->waitingForValuePtr));
+		void* l = *(retlist->waitingForValuePtr);
+		printf("(%d)retlist address = %p and value = %d\n", retlist->id, &retlist->waitingForValuePtr, *(int*)l);
 		retlist = retlist->next;
 	}
 }
@@ -172,23 +173,23 @@ void scheduler()
 {
     //printf("inside scheduler!!\n");
     
-    //printQueue(0);
-    //printQueue(1);
-    //printQueue(2);
-    //printQueue(3);
+    printQueue(0);
+    printQueue(1);
+    printQueue(2);
+    printQueue(3);
     struct itimerval timer;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 50000;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     //printf("in scheduler: about to assign head and parent\n");
-    if(currThread!=NULL){
-	printf("hellow i am thread %d\n", currThread->id);    
+    /*if(currThread!=NULL){
+	//printf("hellow i am thread %d\n", currThread->id);    
 	//valuePlacer();
 	if(currThread->id == 0){
-		checker();
+		//checker();
 	}
-    }
+    }*/
     my_pthread_t* head = pthreadQueue[1].front;
     my_pthread_t* parent = NULL;
     long int curr = timeStamp();
@@ -247,7 +248,8 @@ void scheduler()
         	    //printf("inscheduler: LOOPING (wait!=NULL): wait->waitingID = %d, temp->id = %d\n", wait->waitingOnID, temp->id);
 		    pthread_retval *list = wait->returnList;
 		     while(list!=NULL){
-		    	if(list->id == temp->id){
+			printf("IN HERE LIST ->ID = %d\n", list->id);
+			   if(list->id == temp->id){
             			printf("SOMETHING CHANGED FROM WAITING TO ACTIVE!\n");
             			if(parent == NULL){
                 			pthreadQueue[2].front = wait->next;
@@ -256,11 +258,16 @@ void scheduler()
             			}
 				printf("%d: currThread->valuePtr = %p\n", currThread->id, &(currThread->valuePtr));
                         	printf("currThread->valuePtr actual value = %d\n", currThread->valuePtr);
-				list->waitingForValuePtr = &(currThread->valuePtr);
+				printf("BEFORE: list->waitForValuePtr = %p\n", list->waitingForValuePtr);
+				if(list->waitingForValuePtr != NULL && list->waitingForValuePtr != 0){
+					*(list->waitingForValuePtr) = &(currThread->valuePtr);
+				}
 				list->flag = 0;
+				printf("AFTER: list->waitForValuePtr = %p\n", list->waitingForValuePtr);
+
 				pthread_retval *rt = wait->returnList;
 				while(rt!=NULL){
-                                	if(rt->id == currThread->id){
+                                	if(rt->id == currThread->id && rt->waitingForValuePtr != 0){
 						printf("%d: wait->valuePtr = %d\n", wait->id, *(rt->waitingForValuePtr));
 					}
 					rt= rt->next;	
@@ -300,7 +307,7 @@ void scheduler()
             break;
 	    default: // place into lower priority queue
                 temp->activeFlag = RUNNABLE;
-		printf("in scheduler: in default\n");
+		//printf("in scheduler: in default\n");
 		enqueue(temp, 1);
         }
         // Now, pick a new thread to run
@@ -348,11 +355,12 @@ void scheduler()
         if(temp != NULL){
 	    //printf("in scheduler: thing NOT last else codition\n");
             temp->lastTimeFinished = curr;
-	    //printf("currthread id = %d, temp id = %d\n", currThread->id, temp->id);
+	    printf("currthread id = %d, temp id = %d\n", currThread->id, temp->id);
             swapcontext(&(temp->context), &(currThread->context));
+		printf("^ Swap successful ^ \n");
         }
         else{
-	    //printf("in scheduler: last else condition\n");
+	    printf("in scheduler: last else condition\n");
             swapcontext(&(mainThread->context), &(currThread->context));
 	    //printf("made it here??\n");
         }
@@ -413,7 +421,7 @@ int my_pthread_create( my_pthread_t * thread, pthread_attr_t * attr,
 
 // Explicit call to the my_pthread_t scheduler requesting that the current context be swapped out and another scheduled
 void my_pthread_yield(){
-    
+	printf("*** IN PTHREAD YIELD *** \n\n");    
     //my_pthread_t node;
     currThread->activeFlag = YIELD;
     scheduler();
@@ -446,10 +454,47 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
     rt->flag = 1;
     //currThread->activeFlag = WAITING;
     //currThread->waitingOnID = targetID;
-    
+    printf("$$$$$$ [%d] **valu_ptr = %p\n", thread.id, value_ptr);
+    /*if(value_ptr == NULL){
+	if(thread.activeFlag != DEAD){
+		currThread->activeFlag = WAITING;
+		//currThread->waitingOnID = targetID;
+		rt->flag = 1; 
+		rt->id = targetID;
+		rt->next = NULL;
+		
+		if(currThread->returnList == NULL){
+        		printf("IN JOIN IN NULL PART for thread.id = %d\n", thread.id);
+        		rt->id = targetID;
+        		rt->waitingForValuePtr = value_ptr;
+        		rt->next = NULL;
+        		currThread->returnList = rt;
+    		} else {
+        		rt->id = targetID;
+        		rt->waitingForValuePtr = value_ptr;
+        		pthread_retval *head = currThread->returnList;
+        		pthread_retval *tmp = head;
+        pthread_retval *n = head->next;
+        int j = 0;
+        while(n!=NULL){
+                j++;
+                tmp=n;
+                n=n->next;
+        }
+        tmp->next = rt;
+        currThread->returnList = head;
+    }
+
+	}
+	scheduler();
+	return NULL;
+    }*/
     if(thread.activeFlag == DEAD){
-    	*(value_ptr) = &(thread.valuePtr);
-	printf("IN JOIN: %d\n", **(int**)(value_ptr));
+    	printf("in here\n");
+	if(value_ptr !=NULL){
+		*(value_ptr) = &(thread.valuePtr);
+	}
+	//printf("IN JOIN: %d\n", **(int**)(value_ptr));
     } else {
     	currThread->activeFlag = WAITING;
         currThread->waitingOnID = targetID;
@@ -477,16 +522,12 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 	currThread->returnList = head;
     }
     }
-    checker();
-    
-    //printf("*************BEFORE VALUE POINT = %d\n", thread.valuePtr);
-    //*(thread.valuePtr) = value_ptr;
-    //printf("$$$$$$$$$ value ptr = %p\n", *value_ptr);
-    //*value_ptr = thread.valuePtr;
-    //thread.valuePtr = value_ptr;
-    //printf("$$$$$$$$$$thread value pointer address = %p\n", thread.valuePtr);
-    //printf("$$$$$$$$$$$$$$%d: BEFORE VALUE POINT = %p\n", thread.id, value_ptr);
-    //currThread->waitingForValuePtr = value_ptr;
+    //checker();
+    /*pthread_retval *ret = currThread->returnList;
+    while(ret!=NULL){
+    	printf("$$$$$$ [%d] currThread->value ptr = %p\n", ret->id, ret->waitingForValuePtr);
+    	ret = ret->next;
+    }*/
     scheduler();
     //make sure to account for value_ptr (return value)
     return NULL;
@@ -597,7 +638,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
     printf("pthread is being locked by %d\n", currThread->id);
     //printf("mutex->lock = %d\n", mutex->flag); 
     while(__sync_lock_test_and_set(&(mutex->flag),1)==1){
-        //printf("inside synlocktestandset loop\n");
+        printf("inside synlocktestandset loop\n");
         currThread->activeFlag = BLOCKING; // set the state of the current thread to be WAITITNG
         gen_enqueue(mutex->wait, currThread); //this thread should be waiting in the mutex queue
     	//printf("viewing mutex->wait queue\n");
@@ -632,11 +673,12 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
     //printf("%d\n", mutex->wait->numNodes);
     
     if(mutex->wait->front != NULL){
-        //printf("inside unlcok's if state,ent\n");
+        printf("inside unlcok's if state,ent\n");
         target_thread = gen_dequeue(mutex->wait);
+	
 	target_thread->activeFlag = ACTIVE;
 	enqueue(target_thread, 0);
-        //printf("mutex is available\n");
+        printf("mutex is available\n");
         
     }
     
