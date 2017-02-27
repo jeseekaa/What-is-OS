@@ -673,11 +673,12 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
     //printf("%d\n", mutex->wait->numNodes);
     
     if(mutex->wait->front != NULL){
-        printf("inside unlcok's if state,ent\n");
+        //printf("inside unlcok's if state,ent\n");
         target_thread = gen_dequeue(mutex->wait);
-	
-	target_thread->activeFlag = ACTIVE;
-	enqueue(target_thread, 0);
+    
+        //target_thread->activeFlag = WAITING;
+        currThread=target_thread;
+       // enqueue(currThread, 2);
         printf("mutex is available\n");
         
     }
