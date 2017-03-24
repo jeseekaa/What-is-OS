@@ -72,7 +72,7 @@ mem_data * getNextAvailablePage(int flag){
 
 }
 
-void* split(mem_data* prev, size_t size, int pageIndex){
+void* memPush(mem_data* prev, size_t size, int pageIndex){
 
     //int sr = memoryList[pageIndex]->remainingSpace;
     int pagesRequested;
@@ -394,7 +394,7 @@ void * myallocate(size_t size, char * fileName, int lineNumber, int requestID){
 
         printf("^ Splitting for THREADREQ, ID: %d\n", runningID);
         printf("^ ID for prev: %d", ptr->id);
-        split(ptr, size, i);
+        memPush(ptr, size, i);
         ptr->memFree = 0;
         printf("^ Returning from Allocate \n");
         printMemory();
@@ -410,7 +410,7 @@ void * myallocate(size_t size, char * fileName, int lineNumber, int requestID){
         //printf("hi\n");
         printf("^ Splitting for SYSTEMREQ, ID: %d\n", runningID);
         curr->id = nodeID-1;
-        split(curr, size, i); // honestly, should never actually split more than once here
+        memPush(curr, size, i); // honestly, should never actually split more than once here
         curr->memFree = 0;
         printf("^ Returning from Allocate \n");
         printMemory();     
