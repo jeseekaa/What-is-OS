@@ -3,6 +3,7 @@
 #include <ucontext.h>
 #include <sys/time.h>
 #include <signal.h>
+typedef struct my_pthread_mutex_t;
 typedef struct pthread_retval
 {
     int flag;
@@ -22,8 +23,10 @@ typedef struct my_pthread_t
     struct my_pthread_t *prev;
     ucontext_t context;
     long int lastTimeFinished;
-    long int totalRuntime;
+    long int startTime;
+    long int totalRunTime;
     int waitingOnID;
+    struct my_pthread_mutex_t *ownedMutex;
 } my_pthread_t;
 
 typedef struct priorityQueue
@@ -54,11 +57,12 @@ void my_pthread_yield();
 void pthread_exit(void *value_ptr);
 
 typedef struct my_pthread_mutex_t{
+    int mutexID;
     volatile int flag;
     volatile int block;
-    my_pthread_t owner_thread; //thread that owns the mutex
+    int owner_thread; //thread that owns the mutex
     priorityQueue * wait;
-    
+    struct my_pthread_mutex_t *next;
 } my_pthread_mutex_t;
 
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr);
